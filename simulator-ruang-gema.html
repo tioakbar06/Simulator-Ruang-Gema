@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulator Ruang Gema — Media Pembelajaran Interaktif</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ruang:#12141F;
+    --ruang-2:#1A1D2C;
+    --ruang-3:#222639;
+    --garis:#2E3348;
+    --kabut:#8A90A8;
+    --terang:#EEF0F7;
+    --emas:#E8B94A;
+    --beragam:#45C4A0;
+    --cukup:#F0A63C;
+    --seragam:#E8674C;
+    --r:14px;
+    --display:"Bricolage Grotesque",-apple-system,"Segoe UI",Roboto,sans-serif;
+    --teks:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+    --data:"IBM Plex Mono",ui-monospace,"Courier New",monospace;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html,body{height:100%}
+
+  body{
+    background:var(--ruang);
+    color:var(--terang);
+    font-family:var(--teks);
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer;border:0;background:none}
+  button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--emas);outline-offset:3px}
+
+  .layar{min-height:100vh;display:flex;flex-direction:column}
+
+  /* ── Bilah atas ───────────────────────────────── */
+  .bilah{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding:14px 24px;border-bottom:1px solid var(--garis);
+    background:var(--ruang-2);position:sticky;top:0;z-index:20;
+  }
+  .merek{font-family:var(--display);font-weight:800;font-size:1.05rem;letter-spacing:-.02em;line-height:1.1}
+  .merek span{display:block;font-family:var(--data);font-size:.62rem;font-weight:400;color:var(--kabut);letter-spacing:.16em;text-transform:uppercase}
+  .bilah-kanan{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+  .tombol{
+    padding:10px 18px;border-radius:999px;border:1px solid var(--garis);
+    background:var(--ruang-3);font-weight:500;font-size:.9rem;min-height:44px;
+    transition:background .18s ease,border-color .18s ease,transform .18s ease;
+  }
+  .tombol:hover{background:#2B3049;border-color:#3D4360}
+  .tombol:active{transform:translateY(1px)}
+  .tombol.utama{background:var(--emas);color:#1A1405;border-color:var(--emas);font-weight:600}
+  .tombol.utama:hover{background:#F5C95C}
+  .tombol.utama[disabled]{opacity:.35;cursor:not-allowed}
+  .tombol.kecil{padding:8px 14px;font-size:.82rem;min-height:40px}
+  .ronde{font-family:var(--data);font-size:.85rem;color:var(--kabut);letter-spacing:.05em;white-space:nowrap}
+  .ronde b{color:var(--terang);font-weight:500}
+
+  /* ── Halaman (fase) ───────────────────────────── */
+  .fase{display:none;flex:1;animation:masuk .35s ease}
+  .fase.aktif{display:flex;flex-direction:column}
+  @keyframes masuk{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ── Pembuka ──────────────────────────────────── */
+  .pembuka{
+    flex:1;display:flex;flex-direction:column;justify-content:center;
+    max-width:960px;margin:0 auto;padding:56px 24px;gap:26px;
+  }
+  .eyebrow{font-family:var(--data);font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--emas)}
+  .judul-besar{
+    font-family:var(--display);font-weight:800;letter-spacing:-.035em;line-height:.94;
+    font-size:clamp(2.6rem,8vw,5.4rem);
+  }
+  .judul-besar em{font-style:normal;color:var(--emas)}
+  .pengantar{font-size:clamp(1rem,2.2vw,1.2rem);color:#C3C8DA;max-width:62ch}
+  .pemantik{
+    border-left:3px solid var(--emas);padding:14px 0 14px 20px;
+    font-family:var(--display);font-size:clamp(1.15rem,3vw,1.7rem);font-weight:600;
+    letter-spacing:-.02em;line-height:1.25;
+  }
+  .pembuka-aksi{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
+  .catatan{font-size:.86rem;color:var(--kabut);max-width:62ch}
+
+  /* ── Tata letak fase 1 ────────────────────────── */
+  .kerja{
+    flex:1;display:grid;grid-template-columns:minmax(0,1fr) 340px;
+    gap:0;align-items:stretch;
+  }
+  .panggung{padding:22px 24px 30px;display:flex;flex-direction:column;gap:16px;min-width:0}
+  .samping{
+    border-left:1px solid var(--garis);background:var(--ruang-2);
+    padding:22px 22px 30px;display:flex;flex-direction:column;gap:22px;
+  }
+
+  .kepala-panggung{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .kepala-panggung h2{font-family:var(--display);font-size:1.5rem;font-weight:700;letter-spacing:-.025em}
+  .arahan{font-size:.92rem;color:var(--kabut)}
+  .arahan strong{color:var(--emas);font-weight:600}
+
+  /* ── Kartu konten ─────────────────────────────── */
+  .feed{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;flex:1;
+  }
+  .kartu{
+    position:relative;overflow:hidden;text-align:left;
+    border-radius:var(--r);border:1px solid var(--garis);
+    background:var(--ruang-2);padding:16px 14px 14px;
+    display:flex;flex-direction:column;gap:8px;min-height:120px;
+    transition:transform .18s ease,border-color .18s ease,background .18s ease;
+    animation:kartu-masuk .32s ease backwards;
+  }
+  @keyframes kartu-masuk{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+  .kartu::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--w)}
+  .kartu::after{content:"";position:absolute;inset:0;background:var(--w);opacity:.07;pointer-events:none}
+  .kartu:hover{transform:translateY(-3px);border-color:var(--w)}
+  .kartu-topik{
+    font-family:var(--data);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--w);font-weight:500;position:relative;z-index:1;
+  }
+  .kartu-judul{font-size:.95rem;font-weight:500;line-height:1.3;position:relative;z-index:1}
+  .kartu-sumber{margin-top:auto;font-size:.76rem;color:var(--kabut);position:relative;z-index:1}
+  .kartu.dipilih{border-color:var(--w);box-shadow:0 0 0 2px var(--w)}
+
+  /* ── Meter skor ───────────────────────────────── */
+  .blok-judul{
+    font-family:var(--data);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--kabut);margin-bottom:10px;
+  }
+  .skor-angka{
+    font-family:var(--display);font-weight:800;letter-spacing:-.05em;line-height:.85;
+    font-size:4.2rem;color:var(--nada,var(--beragam));transition:color .3s ease;
+  }
+  .skor-angka sup{font-size:.34em;vertical-align:super;letter-spacing:0;margin-left:2px}
+  .skor-label{font-size:.9rem;font-weight:600;color:var(--nada,var(--beragam));margin-top:6px}
+  .skor-rumus{font-family:var(--data);font-size:.72rem;color:var(--kabut);margin-top:8px;line-height:1.5}
+  .rel{height:8px;border-radius:99px;background:var(--ruang-3);overflow:hidden;margin-top:14px}
+  .rel i{display:block;height:100%;background:var(--nada,var(--beragam));border-radius:99px;transition:width .45s cubic-bezier(.4,0,.2,1),background .3s ease}
+  .pita-band{display:flex;font-family:var(--data);font-size:.6rem;color:var(--kabut);margin-top:6px;letter-spacing:.02em}
+  .pita-band span{flex:0 0 40%}
+  .pita-band span:nth-child(2){flex:0 0 30%;text-align:center}
+  .pita-band span:nth-child(3){flex:0 0 30%;text-align:right}
+
+  /* ── Daftar distribusi ────────────────────────── */
+  .distribusi{display:flex;flex-direction:column;gap:7px}
+  .baris{display:grid;grid-template-columns:14px 1fr 26px;align-items:center;gap:9px;font-size:.84rem}
+  .titik{width:11px;height:11px;border-radius:3px;background:var(--w)}
+  .nama{color:#C3C8DA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .baris.puncak .nama{color:var(--terang);font-weight:600}
+  .jml{font-family:var(--data);font-size:.82rem;text-align:right;color:var(--kabut)}
+  .baris.puncak .jml{color:var(--terang)}
+  .baris.nol{opacity:.34}
+
+  /* ── PITA GEMA (elemen tanda tangan) ──────────── */
+  .pita-bungkus{margin-top:auto}
+  .pita{
+    display:flex;gap:3px;align-items:stretch;height:88px;
+    padding:8px;border-radius:10px;background:var(--ruang-3);border:1px solid var(--garis);
+  }
+  .pita.lebar{height:120px}
+  .kolom{flex:1;display:flex;flex-direction:column;border-radius:3px;overflow:hidden;min-width:4px;
+    animation:kolom-masuk .4s cubic-bezier(.4,0,.2,1) backwards}
+  @keyframes kolom-masuk{from{transform:scaleY(.1);opacity:0}to{transform:none;opacity:1}}
+  .kolom u{display:block;text-decoration:none;background:var(--w);transition:flex-grow .4s ease}
+  .kolom.keluar{outline:1px solid rgba(238,240,247,.35);outline-offset:1px}
+  .kolom.kosong{background:var(--ruang-2);border:1px dashed var(--garis);border-radius:3px}
+  .pita-ket{display:flex;justify-content:space-between;font-family:var(--data);font-size:.62rem;color:var(--kabut);margin-top:7px;letter-spacing:.04em}
+
+  /* ── Jeda & Strategi keluar ───────────────────── */
+  .tengah{
+    flex:1;display:flex;flex-direction:column;justify-content:center;
+    max-width:880px;margin:0 auto;padding:48px 24px;gap:22px;width:100%;
+  }
+  .judul-sedang{font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-height:1;font-size:clamp(2rem,5.5vw,3.4rem)}
+  .angka-sorot{font-family:var(--display);font-weight:800;font-size:clamp(3.4rem,11vw,6.5rem);line-height:.85;letter-spacing:-.05em;color:var(--nada,var(--seragam))}
+
+  .pilihan{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px}
+  .pilih-topik{
+    text-align:left;padding:15px 16px;border-radius:12px;border:1px solid var(--garis);
+    background:var(--ruang-2);display:flex;flex-direction:column;gap:5px;min-height:78px;
+    transition:border-color .18s ease,background .18s ease;
+  }
+  .pilih-topik:hover{border-color:var(--w);background:var(--ruang-3)}
+  .pilih-topik[aria-pressed="true"]{border-color:var(--w);background:color-mix(in srgb,var(--w) 16%,var(--ruang-2));box-shadow:inset 0 0 0 1px var(--w)}
+  .pilih-nama{font-weight:600;font-size:1rem;display:flex;align-items:center;gap:9px}
+  .pilih-nama i{width:11px;height:11px;border-radius:3px;background:var(--w);flex:none}
+  .pilih-info{font-family:var(--data);font-size:.74rem;color:var(--kabut)}
+  .pilih-topik[aria-pressed="true"] .pilih-info{color:var(--terang)}
+
+  .hari{font-family:var(--data);font-size:.9rem;color:var(--emas);letter-spacing:.08em;min-height:1.4em}
+
+  /* ── Ringkasan ────────────────────────────────── */
+  .banding{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  .kotak{border:1px solid var(--garis);border-radius:var(--r);background:var(--ruang-2);padding:18px}
+  .kotak-angka{font-family:var(--display);font-weight:800;font-size:2.8rem;line-height:1;letter-spacing:-.04em}
+  .kotak-ket{font-size:.84rem;color:var(--kabut);margin-top:7px}
+  .strip{display:flex;height:22px;border-radius:6px;overflow:hidden;margin-top:12px;gap:2px}
+  .strip u{display:block;text-decoration:none;background:var(--w);border-radius:2px}
+  .simpul{
+    border:1px solid var(--garis);border-radius:var(--r);background:var(--ruang-2);
+    padding:18px;font-size:.94rem;line-height:1.65;color:#C3C8DA;
+  }
+  .simpul b{color:var(--terang)}
+  .simpul ul{margin:10px 0 0 18px;display:flex;flex-direction:column;gap:6px}
+
+  /* ── Panduan ──────────────────────────────────── */
+  dialog{
+    border:1px solid var(--garis);border-radius:var(--r);background:var(--ruang-2);color:var(--terang);
+    max-width:620px;width:calc(100% - 40px);padding:26px;font-family:var(--teks);
+  }
+  dialog::backdrop{background:rgba(8,9,15,.78)}
+  dialog h3{font-family:var(--display);font-size:1.4rem;font-weight:700;letter-spacing:-.02em;margin-bottom:12px}
+  dialog h4{font-size:.72rem;font-family:var(--data);letter-spacing:.14em;text-transform:uppercase;color:var(--emas);margin:18px 0 7px}
+  dialog p,dialog li{font-size:.92rem;color:#C3C8DA;line-height:1.6}
+  dialog ol,dialog ul{margin-left:18px;display:flex;flex-direction:column;gap:5px}
+
+  /* ── Responsif ────────────────────────────────── */
+  @media (max-width:1080px){
+    .kerja{grid-template-columns:1fr}
+    .samping{border-left:0;border-top:1px solid var(--garis)}
+    .feed{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media (max-width:720px){
+    .bilah{padding:12px 16px}
+    .panggung,.samping{padding:18px 16px 26px}
+    .feed{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .kartu{min-height:104px;padding:13px 12px 12px}
+    .skor-angka{font-size:3.4rem}
+    .merek span{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<body>
+<div class="layar">
+
+  <!-- ══ BILAH ATAS ══ -->
+  <header class="bilah">
+    <div class="merek">Simulator Ruang Gema<span>Media Pembelajaran Interaktif · Fase E</span></div>
+    <div class="bilah-kanan">
+      <span class="ronde" id="ronde" hidden>Ronde <b id="rondeKini">0</b> dari 8</span>
+      <button class="tombol kecil" id="btnPanduan">Panduan pendidik</button>
+      <button class="tombol kecil" id="btnLayar">Layar penuh</button>
+      <button class="tombol kecil" id="btnUlang">Ulang</button>
+    </div>
+  </header>
+
+  <!-- ══ FASE 0 · PEMBUKA ══ -->
+  <section class="fase aktif" id="fasePembuka">
+    <div class="pembuka">
+      <div class="eyebrow">Pekan 1 · Sesi Pembuka · Langkah 3</div>
+      <h1 class="judul-besar">Halaman rekomendasimu<br>tidak <em>netral</em>.</h1>
+      <p class="pengantar">Setiap kali kamu memilih satu konten, mesin rekomendasi belajar dari pilihan itu dan mengirimkan lebih banyak konten sejenis. Simulator ini memperlihatkan prosesnya dalam delapan ronde, lalu menguji apakah halaman yang sudah menyempit masih bisa dilebarkan kembali.</p>
+      <p class="pemantik">“Seberapa seragam asupan informasiku, dan bisakah kubuat lebih beragam?”</p>
+      <div class="pembuka-aksi">
+        <button class="tombol utama" id="btnMulai">Mulai simulasi</button>
+        <button class="tombol" id="btnOtomatis">Jalankan otomatis</button>
+      </div>
+      <p class="catatan">Sebelum menekan tombol, minta murid menuliskan dugaan awal pada <b>LK 1 Bagian A</b>. Dugaan itu dibuka kembali sebagai pembanding pada refleksi Pekan 4.</p>
+    </div>
+  </section>
+
+  <!-- ══ FASE 1 · UMPAN MENYEMPIT ══ -->
+  <section class="fase" id="faseUmpan">
+    <div class="kerja">
+      <div class="panggung">
+        <div class="kepala-panggung">
+          <h2>Halaman rekomendasiku</h2>
+          <p class="arahan">Ketuk <strong>satu</strong> konten yang paling ingin kamu tonton.</p>
+        </div>
+        <div class="feed" id="feed"></div>
+      </div>
+
+      <aside class="samping">
+        <div>
+          <div class="blok-judul">Skor Ruang Gema</div>
+          <div class="skor-angka" id="skorAngka" aria-live="polite">0<sup>%</sup></div>
+          <div class="skor-label" id="skorLabel">beragam</div>
+          <div class="rel"><i id="skorRel" style="width:0%"></i></div>
+          <div class="pita-band"><span>0–40 beragam</span><span>41–70 cukup</span><span>71–100 sangat</span></div>
+          <div class="skor-rumus" id="skorRumus">SRG = 0 dari 12 kartu bertopik dominan</div>
+        </div>
+
+        <div>
+          <div class="blok-judul">Isi halaman menurut topik</div>
+          <div class="distribusi" id="distribusi"></div>
+        </div>
+
+        <div class="pita-bungkus">
+          <div class="blok-judul">Pita Gema · rekam jejak tiap ronde</div>
+          <div class="pita" id="pita"></div>
+          <div class="pita-ket"><span>Ronde 1</span><span id="pitaAkhir">Ronde 8</span></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ══ FASE 2 · JEDA / HASIL PENGUKURAN ══ -->
+  <section class="fase" id="faseJeda">
+    <div class="tengah">
+      <div class="eyebrow">Hasil pengukuran pertama</div>
+      <div class="angka-sorot" id="jedaAngka">0%</div>
+      <h2 class="judul-sedang" id="jedaJudul">Halamanmu kini cukup seragam.</h2>
+      <p class="pengantar" id="jedaTeks"></p>
+      <div class="pita lebar" id="pitaJeda"></div>
+      <div class="pembuka-aksi">
+        <button class="tombol utama" id="btnKeStrategi">Susun strategi keluar</button>
+      </div>
+      <p class="catatan">Angka ini sejajar dengan Skor Ruang Gema kelas pada <b>LK 3 Bagian D</b>. Bedanya, di sini yang dihitung adalah 12 kartu di satu halaman; di kelas nanti yang dihitung adalah jumlah murid yang memiliki topik dominan yang sama.</p>
+    </div>
+  </section>
+
+  <!-- ══ FASE 3 · STRATEGI KELUAR ══ -->
+  <section class="fase" id="faseKeluar">
+    <div class="tengah">
+      <div class="eyebrow">Algoritma strategi keluar · LK 3 Bagian E</div>
+      <h2 class="judul-sedang">Pilih tiga topik yang paling jarang muncul.</h2>
+      <p class="pengantar">Ini langkah 3 dan 4 pada algoritma strategi keluar: memilih topik yang jarang muncul, lalu mengikuti sumber baru yang kredibel tentang topik itu. Angka di tiap kotak menunjukkan berapa kartu bertopik tersebut yang tersisa di halamanmu.</p>
+      <div class="pilihan" id="pilihan"></div>
+      <div class="pembuka-aksi">
+        <button class="tombol utama" id="btnJalankan" disabled>Ikuti dan jalankan 7 hari</button>
+        <span class="hari" id="hari"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FASE 4 · RINGKASAN ══ -->
+  <section class="fase" id="faseRingkas">
+    <div class="tengah">
+      <div class="eyebrow">Bukti perubahan</div>
+      <h2 class="judul-sedang">Sebelum dan sesudah strategi keluar</h2>
+
+      <div class="banding">
+        <div class="kotak">
+          <div class="kotak-angka" id="rAwal">0%</div>
+          <div class="kotak-ket">Skor Ruang Gema sebelum strategi keluar · topik dominan <b id="rTopikAwal">—</b></div>
+          <div class="strip" id="stripAwal"></div>
+        </div>
+        <div class="kotak">
+          <div class="kotak-angka" id="rAkhir">0%</div>
+          <div class="kotak-ket">Skor Ruang Gema sesudah 7 hari · topik dominan <b id="rTopikAkhir">—</b></div>
+          <div class="strip" id="stripAkhir"></div>
+        </div>
+        <div class="kotak">
+          <div class="kotak-angka" id="rSelisih">0</div>
+          <div class="kotak-ket" id="rSelisihKet">Selisih skor</div>
+          <div class="kotak-ket" style="margin-top:12px">Kategori berbeda: <b id="rKategori">—</b></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="blok-judul">Pita Gema · seluruh rangkaian</div>
+        <div class="pita lebar" id="pitaAkhirPenuh"></div>
+        <div class="pita-ket"><span>Ronde 1 · umpan menyempit</span><span>Hari 7 · sesudah strategi keluar</span></div>
+      </div>
+
+      <div class="simpul" id="simpul"></div>
+
+      <div class="pembuka-aksi">
+        <button class="tombol utama" id="btnSalin">Salin ringkasan untuk LK</button>
+        <button class="tombol" id="btnUlangi">Jalankan ulang</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══ PANDUAN PENDIDIK ══ -->
+<dialog id="panduan">
+  <h3>Panduan pendidik</h3>
+  <p>Simulator ini dipakai pada Pekan 1 sesi Pembuka langkah 3, ditayangkan melalui Papan Interaktif Digital. Seluruh interaksi dapat dijalankan dengan sentuh.</p>
+
+  <h4>Alur di kelas</h4>
+  <ol>
+    <li>Murid menuliskan dugaan awal pada LK 1 Bagian A sebelum simulator dijalankan.</li>
+    <li>Panggil lima sampai delapan murid bergantian ke depan. Setiap murid mengetuk satu kartu yang paling ingin ia tonton, tanpa diarahkan.</li>
+    <li>Minta kelas menghitung sendiri kartu bertopik dominan pada layar, lalu bandingkan dengan angka Skor Ruang Gema.</li>
+    <li>Setelah delapan ronde, bahas Pita Gema: tanyakan pada ronde ke berapa warna mulai menghilang.</li>
+    <li>Jalankan tahap strategi keluar bersama, lalu bandingkan skor awal dan skor akhir.</li>
+  </ol>
+
+  <h4>Kaitan dengan lembar kerja</h4>
+  <ul>
+    <li><b>LK 1 Bagian A</b> — dugaan awal murid, dibandingkan dengan hasil simulasi.</li>
+    <li><b>LK 1 Bagian B</b> — daftar topik dan frekuensi; panel kanan adalah bentuk visual dari tabel frekuensi.</li>
+    <li><b>LK 3 Bagian D</b> — rumus dan pita interpretasi skor yang sama.</li>
+    <li><b>LK 3 Bagian E</b> — tahap strategi keluar adalah bentuk berjalan dari algoritma yang akan murid tulis sendiri.</li>
+  </ul>
+
+  <h4>Catatan penting</h4>
+  <p>Simulator memakai data buatan, bukan data media sosial murid. Tekankan bahwa angka di sini adalah model sederhana: mesin rekomendasi yang sebenarnya memakai lebih banyak sinyal daripada satu ketukan. Jadikan keterbatasan ini bahan diskusi kritis, bukan hal yang disembunyikan.</p>
+
+  <h4>Tombol yang tersedia</h4>
+  <p><b>Jalankan otomatis</b> memutar delapan ronde tanpa ketukan murid, berguna saat waktu terbatas. <b>Layar penuh</b> menyembunyikan bilah peramban agar tampilan penuh di PID. <b>Ulang</b> mengembalikan simulator ke keadaan awal.</p>
+
+  <div class="pembuka-aksi" style="margin-top:22px">
+    <button class="tombol utama" id="btnTutupPanduan">Tutup</button>
+  </div>
+</dialog>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ── Data topik dan konten (buatan, aman untuk kelas) ── */
+  const TOPIK = [
+    { nama:"Olahraga", warna:"#E8674C", konten:[
+      ["Lima gol terbaik pekan ini","Kanal Olahraga"],
+      ["Latihan lari 20 menit untuk pemula","Sehat Bergerak"],
+      ["Klub kampung yang naik kelas","Warta Bola"],
+      ["Cara memilih sepatu futsal","Ruang Atlet"],
+      ["Wawancara pelatih voli sekolah","Liga Pelajar"]]},
+    { nama:"Musik", warna:"#B57EDC", konten:[
+      ["Daftar putar belajar tanpa lirik","Ruang Nada"],
+      ["Chord lagu daerah untuk pemula","Petik Senar"],
+      ["Merekam suara pakai ponsel","Studio Kamar"],
+      ["Sejarah dangdut dalam lima menit","Arsip Bunyi"],
+      ["Band pelajar merilis lagu pertama","Panggung Muda"]]},
+    { nama:"Kuliner", warna:"#F09E4A", konten:[
+      ["Resep nasi goreng sepuluh menit","Dapur Cepat"],
+      ["Peta soto dari Sabang ke Merauke","Jelajah Rasa"],
+      ["Bekal sekolah yang tahan lama","Kotak Makan"],
+      ["Uji rasa jajanan depan sekolah","Warta Jajan"],
+      ["Menyimpan sayur agar awet","Dapur Hemat"]]},
+    { nama:"Game", warna:"#45C4A0", konten:[
+      ["Turnamen antarsekolah dibuka","Arena Pelajar"],
+      ["Bermain tanpa lupa waktu","Ruang Main"],
+      ["Membuat game pertama dengan blok kode","Kelas Koding"],
+      ["Sejarah konsol dari masa ke masa","Arsip Piksel"],
+      ["Lima game buatan pengembang lokal","Warta Game"]]},
+    { nama:"Sains & Teknologi", warna:"#4EA8DE", konten:[
+      ["Mengapa langit sore berwarna jingga","Kanal Sains"],
+      ["Cara kerja mesin rekomendasi","Lab Data"],
+      ["Percobaan sederhana di rumah","Ruang Percobaan"],
+      ["Robot pemilah sampah karya pelajar","Warta Riset"],
+      ["Apa itu kecerdasan artifisial","Kelas KA"]]},
+    { nama:"Berita & Isu Publik", warna:"#E86A9A", konten:[
+      ["Ringkasan berita pagi ini","Warta Pagi"],
+      ["Aturan baru transportasi kota","Kabar Kota"],
+      ["Membaca berita secara lateral","Cek Dulu"],
+      ["Kebijakan sampah plastik dibahas","Ruang Publik"],
+      ["Data pekerjaan anak muda","Angka Bicara"]]},
+    { nama:"Seni & Budaya", warna:"#7BC96F", konten:[
+      ["Belajar batik tulis dari nol","Ruang Wastra"],
+      ["Mural sekolah yang jadi perbincangan","Kanal Rupa"],
+      ["Cerita di balik tari saman","Arsip Budaya"],
+      ["Sketsa cepat dengan pensil","Kelas Gambar"],
+      ["Festival teater pelajar","Panggung Kata"]]},
+    { nama:"Otomotif", warna:"#8E9BD8", konten:[
+      ["Merawat rantai sepeda tiap pekan","Bengkel Kecil"],
+      ["Motor listrik untuk pemula","Roda Baru"],
+      ["Berkendara aman ke sekolah","Jalan Selamat"],
+      ["Sejarah angkutan kota","Arsip Jalan"],
+      ["Uji irit bahan bakar","Garasi Uji"]]}
+  ];
+
+  const SLOT = 12, RONDE_MAX = 8, HARI = 7;
+
+  /* ── Keadaan ── */
+  let bobot, ronde, riwayat, kursor, srgAwal, dominanAwal, alokasiAwal, ikuti, sedangOtomatis;
+
+  const el = id => document.getElementById(id);
+  const feedEl = el("feed"), distEl = el("distribusi"), pitaEl = el("pita");
+
+  function awal(){
+    bobot = TOPIK.map(()=>1);
+    ronde = 0;
+    riwayat = [];
+    kursor = TOPIK.map(()=>0);
+    ikuti = [];
+    srgAwal = 0; dominanAwal = 0; alokasiAwal = null;
+    sedangOtomatis = false;
+  }
+
+  /* ── Pembagian 12 slot dengan metode sisa terbesar ── */
+  function alokasi(b){
+    const total = b.reduce((a,c)=>a+c,0);
+    const ideal = b.map(v => v/total*SLOT);
+    const hasil = ideal.map(Math.floor);
+    let sisa = SLOT - hasil.reduce((a,c)=>a+c,0);
+    const urut = ideal.map((v,i)=>({i, f:v-Math.floor(v)})).sort((a,b2)=>b2.f-a.f);
+    let k = 0;
+    while(sisa > 0){ hasil[urut[k % urut.length].i]++; sisa--; k++; }
+    return hasil;
+  }
+
+  const puncak = a => a.indexOf(Math.max(...a));
+  const skorDari = a => Math.round(Math.max(...a)/SLOT*100);
+
+  function nadaSkor(s){
+    if(s <= 40) return { warna:"var(--beragam)", label:"beragam" };
+    if(s <= 70) return { warna:"var(--cukup)", label:"cukup seragam" };
+    return { warna:"var(--seragam)", label:"sangat seragam" };
+  }
+
+  /* ── Tampilan umpan ── */
+  function gambarFeed(){
+    const a = alokasi(bobot);
+    const daftar = [];
+    a.forEach((jml, t) => {
+      for(let n = 0; n < jml; n++){
+        const k = TOPIK[t].konten[kursor[t] % TOPIK[t].konten.length];
+        kursor[t]++;
+        daftar.push({ t, judul:k[0], sumber:k[1] });
+      }
+    });
+    for(let i = daftar.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [daftar[i], daftar[j]] = [daftar[j], daftar[i]];
+    }
+
+    feedEl.innerHTML = "";
+    daftar.forEach((c, i) => {
+      const b = document.createElement("button");
+      b.className = "kartu";
+      b.style.setProperty("--w", TOPIK[c.t].warna);
+      b.style.animationDelay = (i*26) + "ms";
+      b.innerHTML = '<span class="kartu-topik">' + TOPIK[c.t].nama + '</span>'
+                  + '<span class="kartu-judul">' + c.judul + '</span>'
+                  + '<span class="kartu-sumber">' + c.sumber + '</span>';
+      b.addEventListener("click", () => pilih(c.t, b));
+      feedEl.appendChild(b);
+    });
+    return a;
+  }
+
+  function gambarPanel(a){
+    const s = skorDari(a), n = nadaSkor(s), d = puncak(a);
+    const kotak = el("skorAngka");
+    kotak.style.setProperty("--nada", n.warna);
+    kotak.innerHTML = s + '<sup>%</sup>';
+    el("skorLabel").style.setProperty("--nada", n.warna);
+    el("skorLabel").textContent = n.label;
+    const rel = el("skorRel");
+    rel.style.setProperty("--nada", n.warna);
+    rel.style.width = s + "%";
+    el("skorRumus").textContent = "SRG = " + Math.max(...a) + " dari " + SLOT
+      + " kartu bertopik " + TOPIK[d].nama;
+
+    const urut = a.map((v,i)=>({v,i})).sort((x,y)=>y.v-x.v);
+    distEl.innerHTML = "";
+    urut.forEach(o => {
+      const r = document.createElement("div");
+      r.className = "baris" + (o.i === d ? " puncak" : "") + (o.v === 0 ? " nol" : "");
+      r.style.setProperty("--w", TOPIK[o.i].warna);
+      r.innerHTML = '<span class="titik"></span><span class="nama">' + TOPIK[o.i].nama
+                  + '</span><span class="jml">' + o.v + '</span>';
+      distEl.appendChild(r);
+    });
+  }
+
+  function gambarPita(target, penuh){
+    const wadah = typeof target === "string" ? el(target) : target;
+    wadah.innerHTML = "";
+    const total = penuh ? RONDE_MAX + HARI : RONDE_MAX;
+    for(let i = 0; i < total; i++){
+      const k = document.createElement("div");
+      const r = riwayat[i];
+      if(!r){ k.className = "kolom kosong"; wadah.appendChild(k); continue; }
+      k.className = "kolom" + (r.fase === "keluar" ? " keluar" : "");
+      k.style.animationDelay = Math.min(i*32, 420) + "ms";
+      r.a.forEach((v, t) => {
+        if(v === 0) return;
+        const u = document.createElement("u");
+        u.style.setProperty("--w", TOPIK[t].warna);
+        u.style.flexGrow = v;
+        k.appendChild(u);
+      });
+      wadah.appendChild(k);
+    }
+  }
+
+  function gambarStrip(id, a){
+    const w = el(id);
+    w.innerHTML = "";
+    a.forEach((v, t) => {
+      if(v === 0) return;
+      const u = document.createElement("u");
+      u.style.setProperty("--w", TOPIK[t].warna);
+      u.style.flexGrow = v;
+      w.appendChild(u);
+    });
+  }
+
+  /* ── Alur ronde ── */
+  function ronderBaru(){
+    const a = gambarFeed();
+    gambarPanel(a);
+    el("rondeKini").textContent = Math.min(ronde + 1, RONDE_MAX);
+  }
+
+  function pilih(t, tombol){
+    if(ronde >= RONDE_MAX) return;
+    tombol.classList.add("dipilih");
+    const a = alokasi(bobot);
+    riwayat.push({ a, fase:"umpan" });
+    gambarPita(pitaEl, false);
+
+    bobot[t] += 2;
+    bobot = bobot.map((v, i) => i === t ? v : Math.max(v*0.88, 0.05));
+    ronde++;
+
+    setTimeout(() => {
+      if(ronde >= RONDE_MAX){ keJeda(); return; }
+      ronderBaru();
+    }, 260);
+  }
+
+  function keJeda(){
+    const a = alokasi(bobot);
+    srgAwal = skorDari(a);
+    dominanAwal = puncak(a);
+    alokasiAwal = a.slice();
+    riwayat.push({ a, fase:"umpan" });
+    riwayat = riwayat.slice(0, RONDE_MAX);
+
+    const n = nadaSkor(srgAwal);
+    const jd = el("jedaAngka");
+    jd.style.setProperty("--nada", n.warna);
+    jd.textContent = srgAwal + "%";
+    el("jedaJudul").textContent = "Setelah 8 ronde, halamanmu " + n.label + ".";
+    const beda = a.filter(v => v > 0).length;
+    el("jedaTeks").textContent = "Dari 12 kartu, " + Math.max(...a) + " kartu bertopik "
+      + TOPIK[dominanAwal].nama + ". Hanya " + beda + " dari 8 topik yang masih muncul di halamanmu. "
+      + (srgAwal > 55
+          ? "Semakin sering satu topik dipilih, semakin sedikit ruang bagi topik lain untuk tampil."
+          : "Pilihan yang beragam menahan halaman tetap terbuka. Coba amati apa yang terjadi jika satu topik dipilih terus-menerus.");
+    gambarPita("pitaJeda", false);
+    ke("faseJeda");
+    el("ronde").hidden = true;
+  }
+
+  /* ── Strategi keluar ── */
+  function siapkanKeluar(){
+    const wadah = el("pilihan");
+    wadah.innerHTML = "";
+    ikuti = [];
+    const urut = alokasiAwal.map((v,i)=>({v,i})).sort((a,b2)=>a.v-b2.v);
+    urut.forEach(o => {
+      const b = document.createElement("button");
+      b.className = "pilih-topik";
+      b.type = "button";
+      b.setAttribute("aria-pressed","false");
+      b.style.setProperty("--w", TOPIK[o.i].warna);
+      b.innerHTML = '<span class="pilih-nama"><i></i>' + TOPIK[o.i].nama + '</span>'
+                  + '<span class="pilih-info">' + o.v + ' dari 12 kartu</span>';
+      b.addEventListener("click", () => {
+        const aktif = b.getAttribute("aria-pressed") === "true";
+        if(aktif){
+          b.setAttribute("aria-pressed","false");
+          ikuti = ikuti.filter(x => x !== o.i);
+        } else {
+          if(ikuti.length >= 3) return;
+          b.setAttribute("aria-pressed","true");
+          ikuti.push(o.i);
+        }
+        el("btnJalankan").disabled = ikuti.length !== 3;
+      });
+      wadah.appendChild(b);
+    });
+    el("btnJalankan").disabled = true;
+    el("hari").textContent = "";
+    ke("faseKeluar");
+  }
+
+  function jalankanHari(){
+    el("btnJalankan").disabled = true;
+    let h = 0;
+    const langkah = () => {
+      h++;
+      ikuti.forEach(t => bobot[t] += 1.4);
+      bobot[dominanAwal] = Math.max(bobot[dominanAwal]*0.84, 0.2);
+      riwayat.push({ a: alokasi(bobot), fase:"keluar" });
+      el("hari").textContent = "Hari " + h + " dari " + HARI;
+      if(h < HARI){ setTimeout(langkah, 420); } else { setTimeout(keRingkas, 620); }
+    };
+    langkah();
+  }
+
+  /* ── Ringkasan ── */
+  function keRingkas(){
+    const a = alokasi(bobot);
+    const srgAkhir = skorDari(a), dAkhir = puncak(a);
+    const nA = nadaSkor(srgAwal), nB = nadaSkor(srgAkhir);
+
+    el("rAwal").textContent = srgAwal + "%";
+    el("rAwal").style.color = nA.warna;
+    el("rTopikAwal").textContent = TOPIK[dominanAwal].nama;
+    el("rAkhir").textContent = srgAkhir + "%";
+    el("rAkhir").style.color = nB.warna;
+    el("rTopikAkhir").textContent = TOPIK[dAkhir].nama;
+
+    const selisih = srgAkhir - srgAwal;
+    const arah = selisih < 0 ? "turun" : selisih > 0 ? "naik" : "tetap";
+    el("rSelisih").textContent = (selisih > 0 ? "+" : "") + selisih;
+    el("rSelisih").style.color = selisih < 0 ? "var(--beragam)" : selisih > 0 ? "var(--seragam)" : "var(--kabut)";
+    el("rSelisihKet").textContent = "Selisih skor · " + arah + " " + Math.abs(selisih) + " poin persen";
+
+    const kAwal = alokasiAwal.filter(v => v > 0).length;
+    const kAkhir = a.filter(v => v > 0).length;
+    el("rKategori").textContent = kAwal + " → " + kAkhir + " dari 8 topik";
+
+    gambarStrip("stripAwal", alokasiAwal);
+    gambarStrip("stripAkhir", a);
+    gambarPita("pitaAkhirPenuh", true);
+
+    const namaIkuti = ikuti.map(i => TOPIK[i].nama).join(", ");
+    el("simpul").innerHTML =
+      '<b>Yang dapat dibaca dari data ini:</b>'
+      + '<ul>'
+      + '<li>Delapan ronde pemilihan konten membawa Skor Ruang Gema ke <b>' + srgAwal + '%</b> dengan topik dominan <b>' + TOPIK[dominanAwal].nama + '</b>.</li>'
+      + '<li>Setelah mengikuti tiga sumber baru bertopik <b>' + namaIkuti + '</b> selama tujuh hari, skor ' + arah + ' menjadi <b>' + srgAkhir + '%</b>.</li>'
+      + '<li>Jumlah topik yang muncul di halaman berubah dari <b>' + kAwal + '</b> menjadi <b>' + kAkhir + '</b>.</li>'
+      + '<li>Pita Gema memperlihatkan kapan warna mulai hilang dan kapan warna kembali muncul.</li>'
+      + '</ul>'
+      + '<p style="margin-top:12px">Pertanyaan lanjutan untuk kelas: apakah tujuh hari cukup untuk mengubah halaman rekomendasi yang sebenarnya? Apa saja yang tidak ditiru oleh model sederhana ini?</p>';
+
+    el("btnSalin").dataset.teks =
+      "RINGKASAN SIMULATOR RUANG GEMA\n"
+      + "Skor Ruang Gema sebelum: " + srgAwal + "% (topik dominan: " + TOPIK[dominanAwal].nama + ")\n"
+      + "Tiga sumber baru yang diikuti: " + namaIkuti + "\n"
+      + "Skor Ruang Gema sesudah 7 hari: " + srgAkhir + "% (topik dominan: " + TOPIK[dAkhir].nama + ")\n"
+      + "Selisih: " + (selisih > 0 ? "+" : "") + selisih + " poin persen (" + arah + ")\n"
+      + "Jumlah topik yang muncul: " + kAwal + " -> " + kAkhir + " dari 8 topik";
+
+    ke("faseRingkas");
+  }
+
+  /* ── Navigasi fase ── */
+  function ke(id){
+    document.querySelectorAll(".fase").forEach(f => f.classList.remove("aktif"));
+    el(id).classList.add("aktif");
+    window.scrollTo({ top:0, behavior:"instant" in window ? "instant" : "auto" });
+  }
+
+  function mulai(){
+    awal();
+    el("ronde").hidden = false;
+    gambarPita(pitaEl, false);
+    ronderBaru();
+    ke("faseUmpan");
+  }
+
+  /* ── Mode otomatis: meniru murid yang memilih apa yang paling sering muncul ── */
+  function otomatis(){
+    awal();
+    el("ronde").hidden = false;
+    gambarPita(pitaEl, false);
+    ronderBaru();
+    ke("faseUmpan");
+    sedangOtomatis = true;
+    const langkah = () => {
+      if(ronde >= RONDE_MAX || !sedangOtomatis) return;
+      const a = alokasi(bobot);
+      const kandidat = a.map((v,i)=>({v,i})).sort((x,y)=>y.v-x.v).slice(0,2);
+      const t = kandidat[Math.random() < 0.75 ? 0 : 1].i;
+      const kartu = Array.from(feedEl.children).find(c =>
+        c.querySelector(".kartu-topik").textContent === TOPIK[t].nama);
+      if(kartu) kartu.click();
+      setTimeout(langkah, 1000);
+    };
+    setTimeout(langkah, 900);
+  }
+
+  /* ── Tombol ── */
+  el("btnMulai").addEventListener("click", mulai);
+  el("btnOtomatis").addEventListener("click", otomatis);
+  el("btnKeStrategi").addEventListener("click", siapkanKeluar);
+  el("btnJalankan").addEventListener("click", jalankanHari);
+  el("btnUlangi").addEventListener("click", () => { sedangOtomatis = false; awal(); el("ronde").hidden = true; ke("fasePembuka"); });
+  el("btnUlang").addEventListener("click", () => { sedangOtomatis = false; awal(); el("ronde").hidden = true; ke("fasePembuka"); });
+
+  el("btnPanduan").addEventListener("click", () => el("panduan").showModal());
+  el("btnTutupPanduan").addEventListener("click", () => el("panduan").close());
+
+  el("btnLayar").addEventListener("click", () => {
+    if(!document.fullscreenElement){
+      document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+      el("btnLayar").textContent = "Keluar layar penuh";
+    } else {
+      document.exitFullscreen && document.exitFullscreen();
+      el("btnLayar").textContent = "Layar penuh";
+    }
+  });
+  document.addEventListener("fullscreenchange", () => {
+    el("btnLayar").textContent = document.fullscreenElement ? "Keluar layar penuh" : "Layar penuh";
+  });
+
+  el("btnSalin").addEventListener("click", function(){
+    const t = this.dataset.teks || "";
+    const selesai = () => { this.textContent = "Tersalin"; setTimeout(() => this.textContent = "Salin ringkasan untuk LK", 1800); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(selesai).catch(() => cadangan(t, selesai));
+    } else { cadangan(t, selesai); }
+  });
+  function cadangan(t, selesai){
+    const ta = document.createElement("textarea");
+    ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); selesai(); }catch(e){ alert(t); }
+    document.body.removeChild(ta);
+  }
+
+  awal();
+})();
+</script>
+</body>
+</html>
