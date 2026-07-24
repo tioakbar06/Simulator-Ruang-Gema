@@ -252,6 +252,7 @@
     <div class="merek">Simulator Ruang Gema<span>Media Pembelajaran Interaktif · Fase E</span></div>
     <div class="bilah-kanan">
       <span class="ronde" id="ronde" hidden>Ronde <b id="rondeKini">0</b> dari 8</span>
+      <button class="tombol kecil" id="btnSuara">Suara aktif</button>
       <button class="tombol kecil" id="btnPanduan">Panduan pendidik</button>
       <button class="tombol kecil" id="btnLayar">Layar penuh</button>
       <button class="tombol kecil" id="btnUlang">Ulang</button>
@@ -471,6 +472,85 @@
   /* ── Keadaan ── */
   let bobot, ronde, riwayat, kursor, srgAwal, dominanAwal, alokasiAwal, ikuti, sedangOtomatis;
 
+
+/* ══════ Mesin bunyi — disintesis langsung di peramban, tanpa berkas audio ══════ */
+const Bunyi = (function(){
+  const NADA_TOPIK = [523.25,587.33,659.25,783.99,880.00,1046.50,1174.66,1318.51];
+  const PENTA = [523.25,587.33,659.25,783.99,880.00];
+  const TANGGA = [];
+  for(var _o=0;_o<2;_o++) PENTA.forEach(function(f){ TANGGA.push(f*Math.pow(2,_o)); });
+  let ctx = null, utama = null, hidup = true;
+
+  function siap(){
+    if(!hidup) return null;
+    try{
+      if(!ctx){
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return null;
+        ctx = new AC();
+        utama = ctx.createGain();
+        utama.gain.value = 0.4;
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass"; lp.frequency.value = 7000;
+        utama.connect(lp); lp.connect(ctx.destination);
+      }
+      if(ctx.state === "suspended") ctx.resume();
+      return ctx;
+    }catch(e){ return null; }
+  }
+  function nada(f, tunda, lama, vol, jenis, fAkhir){
+    const c = siap(); if(!c) return;
+    const m = c.currentTime + (tunda || 0);
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = jenis || "sine";
+    o.frequency.setValueAtTime(f, m);
+    if(fAkhir) o.frequency.exponentialRampToValueAtTime(fAkhir, m + lama);
+    g.gain.setValueAtTime(0.0001, m);
+    g.gain.exponentialRampToValueAtTime(vol, m + 0.014);
+    g.gain.exponentialRampToValueAtTime(0.0001, m + lama);
+    o.connect(g); g.connect(utama);
+    o.start(m); o.stop(m + lama + 0.06);
+  }
+  function desis(tunda, lama, vol, hz){
+    const c = siap(); if(!c) return;
+    const n = Math.max(1, Math.floor(c.sampleRate * lama));
+    const buf = c.createBuffer(1, n, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i = 0; i < n; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/n, 2);
+    const s = c.createBufferSource(); s.buffer = buf;
+    const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = hz || 2000; f.Q.value = 0.8;
+    const g = c.createGain(); g.gain.value = vol;
+    s.connect(f); f.connect(g); g.connect(utama);
+    s.start(c.currentTime + (tunda || 0));
+  }
+  return {
+    aktif: function(){ return hidup; },
+    alih: function(){ hidup = !hidup; if(hidup) siap(); return hidup; },
+    bangun: function(){ siap(); },
+    ketuk: function(){ nada(880, 0, 0.05, 0.045, "sine"); desis(0, 0.03, 0.025, 3200); },
+    geser: function(){ desis(0, 0.15, 0.04, 1500); nada(300, 0, 0.11, 0.03, "sine", 520); },
+    benar: function(){ nada(783.99, 0, 0.11, 0.15, "triangle"); nada(1046.50, 0.085, 0.2, 0.13, "triangle"); },
+    salah: function(){ nada(196, 0, 0.18, 0.11, "sawtooth", 147); },
+    tegang: function(){ nada(330, 0, 0.55, 0.09, "sine", 110); nada(247, 0.06, 0.5, 0.06, "sine", 98); },
+    naik: function(i, total){
+      const p = Math.min(Math.max((i - 1) / Math.max((total || 10) - 1, 1), 0), 1);
+      nada(TANGGA[Math.round(p * (TANGGA.length - 1))], 0, 0.13, 0.1, "triangle");
+    },
+    topik: function(i, kental){
+      const f = NADA_TOPIK[i % NADA_TOPIK.length];
+      nada(f, 0, 0.17, 0.15, "triangle");
+      const ulang = Math.round(Math.min(Math.max(kental || 0, 0), 1) * 3);
+      for(let k = 1; k <= ulang; k++) nada(f, 0.135 * k, 0.17, 0.15 * Math.pow(0.55, k), "triangle");
+    },
+    rayakan: function(){
+      [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98].forEach(function(f, i){
+        nada(f, i * 0.075, 0.3, 0.13, "triangle");
+      });
+      desis(0.06, 0.5, 0.03, 5200);
+    }
+  };
+})();
+
   const el = id => document.getElementById(id);
   const feedEl = el("feed"), distEl = el("distribusi"), pitaEl = el("pita");
 
@@ -605,6 +685,7 @@
     if(ronde >= RONDE_MAX) return;
     tombol.classList.add("dipilih");
     const a = alokasi(bobot);
+    Bunyi.topik(t, skorDari(a) / 100);
     riwayat.push({ a, fase:"umpan" });
     gambarPita(pitaEl, false);
 
@@ -638,6 +719,7 @@
           ? "Semakin sering satu topik dipilih, semakin sedikit ruang bagi topik lain untuk tampil."
           : "Pilihan yang beragam menahan halaman tetap terbuka. Coba amati apa yang terjadi jika satu topik dipilih terus-menerus.");
     gambarPita("pitaJeda", false);
+    Bunyi.tegang();
     ke("faseJeda");
     el("ronde").hidden = true;
   }
@@ -683,6 +765,7 @@
       ikuti.forEach(t => bobot[t] += 1.4);
       bobot[dominanAwal] = Math.max(bobot[dominanAwal]*0.84, 0.2);
       riwayat.push({ a: alokasi(bobot), fase:"keluar" });
+      Bunyi.naik(h, HARI);
       el("hari").textContent = "Hari " + h + " dari " + HARI;
       if(h < HARI){ setTimeout(langkah, 420); } else { setTimeout(keRingkas, 620); }
     };
@@ -715,6 +798,7 @@
     gambarStrip("stripAwal", alokasiAwal);
     gambarStrip("stripAkhir", a);
     gambarPita("pitaAkhirPenuh", true);
+    Bunyi.rayakan();
 
     const namaIkuti = ikuti.map(i => TOPIK[i].nama).join(", ");
     el("simpul").innerHTML =
@@ -781,6 +865,14 @@
   el("btnJalankan").addEventListener("click", jalankanHari);
   el("btnUlangi").addEventListener("click", () => { sedangOtomatis = false; awal(); el("ronde").hidden = true; ke("fasePembuka"); });
   el("btnUlang").addEventListener("click", () => { sedangOtomatis = false; awal(); el("ronde").hidden = true; ke("fasePembuka"); });
+
+  function labelSuara(){ el("btnSuara").textContent = Bunyi.aktif() ? "Suara aktif" : "Suara mati"; }
+  el("btnSuara").addEventListener("click", () => { Bunyi.alih(); labelSuara(); if(Bunyi.aktif()) Bunyi.benar(); });
+  labelSuara();
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if(b && b.id !== "btnSuara" && !b.classList.contains("kartu")) Bunyi.ketuk();
+  }, true);
 
   el("btnPanduan").addEventListener("click", () => el("panduan").showModal());
   el("btnTutupPanduan").addEventListener("click", () => el("panduan").close());
